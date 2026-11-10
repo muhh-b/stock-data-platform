@@ -55,8 +55,6 @@ flowchart LR
     stg_receipts --> rpt_stockouts_current
 ```
 
-> Interactive lineage: `make docs` (dbt docs on http://localhost:8081). The CI also publishes the dbt docs as a build artifact.
-
 ---
 
 ## Running on Databricks
