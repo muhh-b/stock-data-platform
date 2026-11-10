@@ -33,7 +33,10 @@ jobs:
         run: dbt deps
       - name: SQL lint
         working-directory: dbt
-        run: sqlfluff lint models tests
+        # the dbt templater opens a DuckDB connection: its folder must exist
+        run: |
+          mkdir -p ../data
+          sqlfluff lint models tests
 
   build:
     name: dbt build on DuckDB (simulated daily runs)
@@ -49,7 +52,7 @@ jobs:
       # 10 simulated days: enough to exercise incremental models, the SCD2
       # snapshot (referential changes) and the anomaly tests.
       - name: Run the pipeline day by day
-        run: scripts/run_local_pipeline.sh 10
+        run: bash scripts/run_local_pipeline.sh 10
       - name: Idempotence check (replay the last day, row counts must not change)
         run: |
           before=$(python -c "import duckdb; print(duckdb.connect('$DUCKDB_PATH').sql('select count(*) from gold.fct_stock_daily').fetchone()[0])")

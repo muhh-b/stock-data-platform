@@ -11,7 +11,7 @@ data:               ## Generate the synthetic landing zone only
 	python generator/generate_data.py --days $(DAYS) --out data/landing
 
 run:                ## Full local pipeline on DuckDB, one run per simulated day
-	scripts/run_local_pipeline.sh $(DAYS)
+	bash scripts/run_local_pipeline.sh $(DAYS)
 
 lint:               ## Python + SQL lint
 	ruff check . && ruff format --check .
