@@ -17,9 +17,13 @@ The same dbt project runs on **two targets**: DuckDB (local development and CI, 
 
 ## Architecture
 
-![Architecture](docs/architecture.svg)
+![Architecture](docs/architecture.png)
 
-> Editable source: [`docs/architecture.excalidraw`](docs/architecture.excalidraw) (open it on [excalidraw.com](https://excalidraw.com) with *Open*, edit, then *Export image* as SVG to `docs/architecture.svg`).
+### Tech stack
+
+![Tech stack](docs/stack.png)
+
+> Editable sources: [`docs/architecture.excalidraw`](docs/architecture.excalidraw) and [`docs/stack.excalidraw`](docs/stack.excalidraw) (open them on [excalidraw.com](https://excalidraw.com) with *Open*, edit, then *Export image* as PNG).
 
 | Layer | Tool | What happens |
 |---|---|---|
@@ -185,7 +189,7 @@ Free Edition limits to keep in mind: serverless compute only (no custom clusters
 
 ```
 .
-├── docs/                             architecture (Excalidraw) and Databricks screenshots
+├── docs/                             architecture and stack diagrams (Excalidraw), Databricks screenshots
 ├── generator/generate_data.py          synthetic stock / sales / receipts / referential data
 ├── scripts/
 │   ├── load_bronze_local.py            bronze ingestion into DuckDB (mirror of the notebook)
