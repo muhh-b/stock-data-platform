@@ -1,0 +1,9 @@
+# Local development and CI (dbt runs on DuckDB, no cloud needed)
+dbt-core>=1.10,<2
+dbt-duckdb>=1.10,<2
+duckdb>=1.1
+sqlfluff>=3.0
+sqlfluff-templater-dbt>=3.0
+ruff>=0.6
+# Only needed to run dbt against Databricks
+dbt-databricks>=1.10,<2

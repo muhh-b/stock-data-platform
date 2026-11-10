@@ -1,0 +1,99 @@
+version: 2
+
+models:
+  - name: stg_stores
+    description: Store referential, typed and deduplicated.
+    columns:
+      - name: store_id
+        data_tests: [unique, not_null]
+      - name: store_size
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['S', 'M', 'L']
+
+  - name: stg_products
+    description: Current state of the product referential.
+    columns:
+      - name: product_id
+        data_tests: [unique, not_null]
+      - name: product_status
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['ACTIVE', 'DISCONTINUED']
+      - name: unit_price
+        data_tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                strictly: true
+
+  - name: stg_stock_snapshots
+    description: >
+      End-of-day stock, one row per day x store x product. Incremental,
+      upserted on the grain (idempotent). Negative stock is excluded.
+    data_tests:
+      - dbt_expectations.expect_compound_columns_to_be_unique:
+          arguments:
+            column_list: ['snapshot_date', 'store_id', 'product_id']
+    columns:
+      - name: snapshot_date
+        data_tests: [not_null]
+      - name: store_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_stores')
+                field: store_id
+      - name: product_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_products')
+                field: product_id
+      - name: stock_qty
+        description: Units on hand at end of day. Business rule, stock >= 0.
+        data_tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+
+  - name: stg_stock_quarantine
+    description: Stock rows rejected by silver, with the rejection reason.
+    data_tests:
+      - dbt_expectations.expect_table_row_count_to_equal:
+          arguments:
+            value: 0
+          config:
+            severity: warn  # anomalies are reported, they do not block the pipeline
+
+  - name: stg_sales
+    description: Sales lines, deduplicated on sale_id.
+    columns:
+      - name: sale_id
+        data_tests: [unique, not_null]
+      - name: sales_channel
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['STORE', 'CLICK_COLLECT']
+      - name: quantity
+        data_tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 1
+
+  - name: stg_receipts
+    description: Supplier receipts.
+    columns:
+      - name: receipt_id
+        data_tests: [unique, not_null]
+      - name: quantity
+        data_tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 1

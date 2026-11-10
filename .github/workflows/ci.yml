@@ -1,0 +1,102 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DBT_PROFILES_DIR: ${{ github.workspace }}/dbt/profiles
+  DBT_TARGET: duckdb
+  DUCKDB_PATH: ${{ github.workspace }}/data/warehouse.duckdb
+
+jobs:
+  lint:
+    name: Lint (ruff + sqlfluff)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements-dev.txt
+      - name: Python lint
+        run: ruff check . && ruff format --check .
+      - name: dbt deps
+        working-directory: dbt
+        run: dbt deps
+      - name: SQL lint
+        working-directory: dbt
+        run: sqlfluff lint models tests
+
+  build:
+    name: dbt build on DuckDB (simulated daily runs)
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements-dev.txt
+      # 10 simulated days: enough to exercise incremental models, the SCD2
+      # snapshot (referential changes) and the anomaly tests.
+      - name: Run the pipeline day by day
+        run: scripts/run_local_pipeline.sh 10
+      - name: Idempotence check (replay the last day, row counts must not change)
+        run: |
+          before=$(python -c "import duckdb; print(duckdb.connect('$DUCKDB_PATH').sql('select count(*) from gold.fct_stock_daily').fetchone()[0])")
+          last_day=$(ls -d data/landing/dt=* | sort | tail -1 | sed 's/.*dt=//')
+          python scripts/load_bronze_local.py --date "$last_day"
+          (cd dbt && dbt build --quiet)
+          after=$(python -c "import duckdb; print(duckdb.connect('$DUCKDB_PATH').sql('select count(*) from gold.fct_stock_daily').fetchone()[0])")
+          echo "fct_stock_daily rows: before=$before after=$after"
+          test "$before" = "$after"
+      - name: Generate dbt docs
+        working-directory: dbt
+        run: dbt docs generate
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dbt-docs
+          path: |
+            dbt/target/index.html
+            dbt/target/manifest.json
+            dbt/target/catalog.json
+
+  databricks:
+    name: dbt build on Databricks
+    runs-on: ubuntu-latest
+    needs: build
+    # Only on main, and only when the Databricks secrets are configured.
+    if: github.ref == 'refs/heads/main'
+    env:
+      DBT_TARGET: databricks
+      DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+      DATABRICKS_HTTP_PATH: ${{ secrets.DATABRICKS_HTTP_PATH }}
+      DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+      DATABRICKS_CATALOG: ${{ vars.DATABRICKS_CATALOG || 'stock_platform' }}
+    steps:
+      - uses: actions/checkout@v4
+        if: env.DATABRICKS_TOKEN != ''
+      - uses: actions/setup-python@v5
+        if: env.DATABRICKS_TOKEN != ''
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: dbt build
+        if: env.DATABRICKS_TOKEN != ''
+        working-directory: dbt
+        run: |
+          pip install "dbt-databricks>=1.10,<2"
+          dbt deps
+          dbt build
+      - name: Skipped
+        if: env.DATABRICKS_TOKEN == ''
+        run: echo "Databricks secrets not configured, skipping."

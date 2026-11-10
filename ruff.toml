@@ -1,0 +1,10 @@
+line-length = 120
+target-version = "py312"
+extend-exclude = ["dbt/dbt_packages", "dbt/target"]
+
+[lint]
+select = ["E", "F", "I", "B", "UP"]
+
+[lint.per-file-ignores]
+# Databricks notebooks use the injected globals spark / dbutils
+"databricks/notebooks/*.py" = ["F821", "E402", "I001"]

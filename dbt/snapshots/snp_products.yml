@@ -1,0 +1,13 @@
+snapshots:
+  - name: snp_products
+    description: >
+      SCD2 history of the product referential. One row per version of a
+      product, with dbt_valid_from / dbt_valid_to. Lets the gold layer know
+      the status (ACTIVE / DISCONTINUED) and the price of a product on any
+      given date.
+    relation: ref('stg_products')
+    config:
+      unique_key: product_id
+      strategy: timestamp
+      updated_at: updated_at
+      hard_deletes: invalidate

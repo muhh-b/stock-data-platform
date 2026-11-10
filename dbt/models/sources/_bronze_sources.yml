@@ -1,0 +1,41 @@
+version: 2
+
+sources:
+  - name: bronze
+    description: >
+      Raw daily extracts landed by upstream systems (stores, product
+      referential, stock, sales, supplier receipts). Every business column
+      is a string; technical columns are added at ingestion.
+    schema: bronze
+    config:
+      loaded_at_field: _ingested_at
+      freshness:
+        warn_after: {count: 26, period: hour}
+        error_after: {count: 48, period: hour}
+
+    tables:
+      - name: stores
+        description: Store referential (sent once, then on change).
+        config:
+          freshness: null  # static referential, no daily delivery expected
+      - name: products
+        description: Full product referential extract, sent when the referential changes.
+        config:
+          freshness: null
+      - name: stock
+        description: End-of-day stock snapshot per store x product.
+        columns:
+          - name: snapshot_date
+          - name: store_id
+          - name: product_id
+          - name: stock_qty
+      - name: sales
+        description: Daily sales lines per store x product x channel.
+      - name: receipts
+        description: >
+          Supplier receipts per store x product. Not every day has receipts,
+          so a late file only raises a warning.
+        config:
+          freshness:
+            warn_after: {count: 48, period: hour}
+            error_after: null

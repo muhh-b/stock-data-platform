@@ -1,0 +1,16 @@
+# data generated locally
+data/
+include/data/
+# dbt
+dbt/target/
+dbt/dbt_packages/
+dbt/logs/
+# python
+__pycache__/
+.venv/
+*.pyc
+# astro / airflow
+.env
+airflow_settings.local.yaml
+dbt/profiles/.user.yml
+dbt/job.json

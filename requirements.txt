@@ -1,0 +1,4 @@
+# Airflow image dependencies (dbt itself is installed in dbt_venv, see Dockerfile)
+astronomer-cosmos>=1.16,<2
+apache-airflow-providers-databricks>=7.0
+duckdb>=1.1

@@ -1,0 +1,90 @@
+version: 2
+
+models:
+  - name: dim_stores
+    description: Store dimension.
+    columns:
+      - name: store_id
+        data_tests: [unique, not_null]
+
+  - name: dim_products
+    description: >
+      Product dimension with SCD2 history (from snp_products). One row per
+      product version. Join on a date with valid_from <= date < valid_to.
+    data_tests:
+      - dbt_expectations.expect_compound_columns_to_be_unique:
+          arguments:
+            column_list: ['product_id', 'valid_from']
+    columns:
+      - name: product_id
+        data_tests: [not_null]
+      - name: is_current
+        description: True for the current version of the product.
+
+  - name: fct_stock_daily
+    description: >
+      Daily stock fact, grain day x store x product, with the flows of the
+      day and the product attributes valid on that day. Incremental, upserted
+      on the grain.
+    data_tests:
+      - dbt_expectations.expect_compound_columns_to_be_unique:
+          arguments:
+            column_list: ['snapshot_date', 'store_id', 'product_id']
+    columns:
+      - name: store_id
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_stores')
+                field: store_id
+      - name: product_status
+        description: Product status valid on that day (from the SCD2 dimension).
+        data_tests: [not_null]
+      - name: stock_qty
+        data_tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+
+  - name: kpi_availability_daily
+    description: >
+      Availability rate (taux de dispo) per day x store x sport: share of
+      active references with stock > 0 at end of day.
+    data_tests:
+      - dbt_expectations.expect_compound_columns_to_be_unique:
+          arguments:
+            column_list: ['snapshot_date', 'store_id', 'sport']
+    columns:
+      - name: availability_rate
+        data_tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                max_value: 1
+      - name: nb_active_refs
+        data_tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 1
+
+  - name: kpi_stock_cover
+    description: Days of cover and rotation rate per day x store x product (rolling window).
+    columns:
+      - name: days_of_cover
+        description: Stock divided by average daily sales. Null when nothing sold over the window.
+      - name: rotation_rate
+        data_tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+
+  - name: rpt_stockouts_current
+    description: Active references out of stock on the latest day, with streak length and last receipt.
+    columns:
+      - name: stockout_days
+        data_tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 1

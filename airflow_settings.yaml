@@ -1,0 +1,7 @@
+# Local Airflow objects created by `astro dev start`.
+# The Databricks connection is NOT stored here: set it in .env (see .env.example).
+airflow:
+  pools:
+    - pool_name: duckdb_single_writer
+      pool_slot: 1
+      pool_description: DuckDB allows a single writer, dbt tasks are serialized in local mode

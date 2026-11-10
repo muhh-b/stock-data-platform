@@ -1,0 +1,19 @@
+# Two targets: DuckDB for local development / CI, Databricks for the real platform.
+# Select one with DBT_TARGET=duckdb|databricks (default: duckdb).
+stock_platform:
+  target: "{{ env_var('DBT_TARGET', 'duckdb') }}"
+  outputs:
+    duckdb:
+      type: duckdb
+      path: "{{ env_var('DUCKDB_PATH', '../data/warehouse.duckdb') }}"
+      schema: main
+      threads: 4
+
+    databricks:
+      type: databricks
+      catalog: "{{ env_var('DATABRICKS_CATALOG', 'stock_platform') }}"
+      schema: silver
+      host: "{{ env_var('DATABRICKS_HOST', 'not-set') }}"
+      http_path: "{{ env_var('DATABRICKS_HTTP_PATH', 'not-set') }}"
+      token: "{{ env_var('DATABRICKS_TOKEN', 'not-set') }}"
+      threads: 4

@@ -1,0 +1,37 @@
+name: stock_platform
+version: "1.0.0"
+config-version: 2
+profile: stock_platform
+
+model-paths: ["models"]
+snapshot-paths: ["snapshots"]
+test-paths: ["tests"]
+macro-paths: ["macros"]
+analysis-paths: ["analyses"]
+target-path: "target"
+clean-targets: ["target", "dbt_packages"]
+
+vars:
+  # Lookback (days) re-processed by incremental models to absorb late data
+  lookback_days: 3
+  # Window (days) used for average sales, coverage and rotation KPIs
+  kpi_window_days: 28
+  # Unity Catalog group granted SELECT on gold models (Databricks only, '' = no grants)
+  consumer_group: stock_consumers
+
+models:
+  stock_platform:
+    silver:
+      +schema: silver
+      +materialized: table
+    gold:
+      +schema: gold
+      +materialized: table
+
+snapshots:
+  stock_platform:
+    +schema: snapshots
+
+data_tests:
+  stock_platform:
+    +store_failures: false
