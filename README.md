@@ -23,8 +23,6 @@ The same dbt project runs on **two targets**: DuckDB (local development and CI, 
 
 ![Tech stack](docs/stack.png)
 
-> Editable sources: [`docs/architecture.excalidraw`](docs/architecture.excalidraw) and [`docs/stack.excalidraw`](docs/stack.excalidraw) (open them on [excalidraw.com](https://excalidraw.com) with *Open*, edit, then *Export image* as PNG).
-
 | Layer | Tool | What happens |
 |---|---|---|
 | **Bronze** | PySpark notebook (Databricks) or Python + DuckDB (local) | CSV files of the day are appended as raw strings to Delta tables, with `_ingested_at`, `_source_file`, `_partition_date` |
