@@ -55,11 +55,11 @@ jobs:
         run: bash scripts/run_local_pipeline.sh 10
       - name: Idempotence check (replay the last day, row counts must not change)
         run: |
-          before=$(python -c "import duckdb; print(duckdb.connect('$DUCKDB_PATH').sql('select count(*) from gold.fct_stock_daily').fetchone()[0])")
+          before=$(python -c "import duckdb; print(duckdb.connect('$DUCKDB_PATH').execute('select count(*) from gold.fct_stock_daily').fetchone()[0])")
           last_day=$(ls -d data/landing/dt=* | sort | tail -1 | sed 's/.*dt=//')
           python scripts/load_bronze_local.py --date "$last_day"
           (cd dbt && dbt build --quiet)
-          after=$(python -c "import duckdb; print(duckdb.connect('$DUCKDB_PATH').sql('select count(*) from gold.fct_stock_daily').fetchone()[0])")
+          after=$(python -c "import duckdb; print(duckdb.connect('$DUCKDB_PATH').execute('select count(*) from gold.fct_stock_daily').fetchone()[0])")
           echo "fct_stock_daily rows: before=$before after=$after"
           test "$before" = "$after"
       - name: Generate dbt docs
